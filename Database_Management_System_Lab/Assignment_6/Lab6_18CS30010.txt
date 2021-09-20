@@ -1,0 +1,118 @@
+
+-- Name: Avijit Mandal
+-- Roll: 18CS30010
+
+-- part 1
+
+drop trigger if exists update_cgpa_insert;
+drop trigger if exists update_cgpa_update;
+drop trigger if exists update_cgpa_delete;
+
+DELIMITER $$
+
+create trigger update_cgpa_insert
+after insert on Registration
+for each row
+begin 
+    update Student
+    set cgpa = (
+		select sum(grade_point*credits) / sum(credits)
+        from (
+			select R.grade_point, C.credits
+			from Registration R, Course C
+			where R.roll_no = NEW.roll_no
+			and R.course_cd = C.course_cd
+        ) as T
+    )
+    where Student.roll_no = NEW.roll_no;
+end $$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+create trigger update_cgpa_update
+after update on Registration
+for each row
+begin 
+    update Student
+    set cgpa = (
+		select sum(grade_point*credits) / sum(credits)
+        from (
+			select R.grade_point, C.credits
+			from Registration R, Course C
+			where R.roll_no = NEW.roll_no
+			and R.course_cd = C.course_cd
+        ) as T
+    )
+    where Student.roll_no = NEW.roll_no;
+end $$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+create trigger update_cgpa_delete
+after delete on Registration
+for each row
+begin 
+    update Student
+    set cgpa = (
+		select sum(grade_point*credits) / sum(credits)
+        from (
+			select R.grade_point, C.credits
+			from Registration R, Course C
+			where R.roll_no = OLD.roll_no
+			and R.course_cd = C.course_cd
+        ) as T
+    )
+    where Student.roll_no = OLD.roll_no;
+end $$
+
+DELIMITER ;
+
+-- part 2
+
+DROP PROCEDURE IF EXISTS update_cgpa;
+DELIMITER $$
+
+create procedure update_cgpa(
+        in roll_no_ int, 
+        out cgpa_ decimal(5,2)
+)
+begin
+	update Student
+		set cgpa = (
+			select sum(grade_point*credits) / sum(credits)
+			from (
+				select R.grade_point, C.credits
+				from Registration R, Course C
+				where R.roll_no = roll_no_
+				and R.course_cd = C.course_cd
+			) as T
+		)
+	where roll_no = roll_no_;
+	set cgpa_ = (select cgpa from Student where Student.roll_no = roll_no_);
+    select cgpa_ as CGPA;
+end $$
+DELIMITER ;
+
+-- part 3
+-- Here I am assuming 5 is the input implicitly
+
+with recursive T1(emp_cd, manager_emp_cd) as (
+	select emp_cd, manager_emp_cd
+	from Employee
+	where Employee.emp_cd = 5     
+	union distinct
+		select Employee.emp_cd, Employee.manager_emp_cd
+		from T1, Employee
+		where T1.manager_emp_cd = Employee.emp_cd
+	)
+select * from T1;
+
+
+
+
